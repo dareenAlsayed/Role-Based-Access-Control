@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBAC Ultra Demo (Fixed Version)</title>
+<style>
+body{
+ font-family:'Segoe UI',sans-serif;
+ background:linear-gradient(135deg,#0f172a,#1e293b);
+ color:white;text-align:center;padding:40px;
+}
+.hidden{display:none}
+.container{
+ max-width:900px;margin:auto;background:rgba(255,255,255,0.06);
+ padding:30px;border-radius:20px;backdrop-filter:blur(10px);
+ box-shadow:0 0 25px rgba(0,0,0,0.4);
+}
+input,select{
+ padding:12px;width:260px;margin-top:10px;border-radius:8px;border:none;
+}
+button{
+ padding:12px 25px;margin:10px;border:none;border-radius:8px;
+ background:#3b82f6;color:white;font-size:16px;cursor:pointer;
+ transition:0.25s;
+}
+button:hover{background:#60a5fa;transform:translateY(-3px);}
+.card{
+ background:rgba(255,255,255,0.08);padding:20px;margin:15px 0;
+ border-radius:12px;text-align:left;
+}
+.allow{color:#4ade80;font-weight:bold;}
+.deny{color:#f87171;font-weight:bold;}
+#accessLog{
+ background:rgba(255,255,255,0.1);height:180px;overflow-y:auto;
+ padding:15px;border-radius:12px;text-align:left;margin-top:20px;
+}
+/* Futuristic glow */
+body::before{
+ content:"";position:fixed;top:0;left:0;width:100%;height:100%;
+ background:radial-gradient(circle at 30% 30%,rgba(0,200,255,0.15),transparent),
+ radial-gradient(circle at 70% 80%,rgba(255,0,200,0.15),transparent);
+ z-index:-1;
+ animation:glow 6s infinite alternate;
+}
+@keyframes glow{from{filter:blur(0px);} to{filter:blur(8px);} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="container">
+ <h1>RBAC Login</h1>
+ <p>Enter credentials to simulate login.</p>
+ <input id="username" placeholder="Enter username"><br>
+ <input id="password" type="password" placeholder="Enter password"><br>
+ <select id="roleSelect">
+   <option value="Admin">Admin</option>
+   <option value="Manager">Manager</option>
+   <option value="Employee">Employee</option>
+   <option value="Intern">Intern</option>
+   <option value="Auditor">Auditor</option>
+ </select><br>
+ <button onclick="login()">Login</button>
+ <p id="loginError" style="color:#f87171;display:none;">Incorrect password.</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardPage" class="container hidden">
+ <h1 id="welcomeText"></h1>
+ <div id="dashboard"></div>
+
+ <h2>Try System Actions</h2>
+ <button onclick="attempt('view')">View Data</button>
+ <button onclick="attempt('edit')">Edit Record</button>
+ <button onclick="attempt('approve')">Approve Request</button>
+ <button onclick="attempt('delete')">Delete Record</button>
+
+ <div id="actionResult" style="margin-top:20px;font-size:20px;"></div>
+
+ <h2>Access Log</h2>
+ <div id="accessLog"></div>
+
+ <button onclick="logout()" style="background:#ef4444;">Logout</button>
+</div>
+
+<script>
+/* --- ROLES WITH PERMISSIONS --- */
+const roles={
+ Admin:{pass:"admin123",view:true,edit:true,approve:true,delete:true,description:"Full system control"},
+ Manager:{pass:"manager123",view:true,edit:true,approve:true,delete:false,description:"Team operations"},
+ Employee:{pass:"emp123",view:true,edit:false,approve:false,delete:false,description:"Standard worker access"},
+ Intern:{pass:"intern123",view:true,edit:false,approve:false,delete:false,description:"Read-only trainee access"},
+ Auditor:{pass:"audit123",view:true,edit:false,approve:true,delete:false,description:"Read + approve for audits"}
+};
+let currentRole="";
+
+/* --- LOGIN FUNCTION --- */
+function login(){
+ const user=document.getElementById('username').value||"User";
+ const pass=document.getElementById('password').value;
+ const role=document.getElementById('roleSelect').value;
+
+ if(pass!==roles[role].pass){
+   document.getElementById('loginError').style.display='block';
+   return;
+ }
+ document.getElementById('loginError').style.display='none';
+ currentRole=role;
+
+ document.getElementById('welcomeText').innerText=`Welcome, ${user} (${role})`;
+
+ const p=roles[role];
+ document.getElementById('dashboard').innerHTML=`
+   <div class='card'><strong>Role Description:</strong> ${p.description}</div>
+   <div class='card'>📄 View: <span class='${p.view?"allow":"deny"}'>${p.view?"Allowed":"Denied"}</span></div>
+   <div class='card'>✏️ Edit: <span class='${p.edit?"allow":"deny"}'>${p.edit?"Allowed":"Denied"}</span></div>
+   <div class='card'>✔ Approve: <span class='${p.approve?"allow":"deny"}'>${p.approve?"Allowed":"Denied"}</span></div>
+   <div class='card'>🗑 Delete: <span class='${p.delete?"allow":"deny"}'>${p.delete?"Allowed":"Denied"}</span></div>
+ `;
+
+ document.getElementById('loginPage').classList.add('hidden');
+ document.getElementById('dashboardPage').classList.remove('hidden');
+}
+
+/* --- ACTION ATTEMPTS --- */
+function attempt(action){
+ const allowed=roles[currentRole][action];
+ const log=document.getElementById('accessLog');
+ const timestamp=new Date().toLocaleTimeString();
+ log.innerHTML += `<div>[${timestamp}] ${currentRole} attempted ${action.toUpperCase()} → ${allowed?"SUCCESS":"DENIED"}</div>`;
+ log.scrollTop=log.scrollHeight;
+ document.getElementById('actionResult').innerHTML=
+   allowed?`<span class='allow'>✔ Action Successful</span>`:
+            `<span class='deny'>✖ Access Denied: ${currentRole} cannot ${action}</span>`;
+}
+
+/* --- LOGOUT --- */
+function logout(){
+ document.getElementById('dashboardPage').classList.add('hidden');
+ document.getElementById('loginPage').classList.remove('hidden');
+ document.getElementById('accessLog').innerHTML="";
+ document.getElementById('password').value="";
+}
+</script>
+
+</body>
+</html>
